@@ -1,7 +1,20 @@
 package com.raenn.subredditimages;
 
+import android.app.Activity;
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.os.AsyncTask;
+import android.os.Bundle;
 import android.util.Log;
 
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.wearable.Asset;
+import com.google.android.gms.wearable.PutDataRequest;
+import com.google.android.gms.wearable.Wearable;
 import com.raenn.subredditimages.pojo.Image;
 
 import org.json.JSONArray;
@@ -9,15 +22,19 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.ProtocolException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
+//TODO: stop using everything static, once more stable
+//TODO: split this class up, it's just random methods
 public class ImageRequester {
 
     public static List<Image> parseRedditJSON(String response) throws JSONException {
@@ -39,52 +56,18 @@ public class ImageRequester {
         return ret;
     }
 
-    public static String getImageUrl() {
-
-        String resultJSON = "";
-        HttpURLConnection conn = null;
-        BufferedReader reader = null;
-
-        //probably want to store this locally on phone, and query from watch
-        //see "Add data to your watch face": https://developer.android.com/training/wearables/watch-faces/information.html
-        try {
-            //TODO: make subreddit (etc) configurable
-            URL url = new URL("http://www.reddit.com/r/spaceporn/hot.json?limit=20&raw_json=1");
-            conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("GET");
-            conn.connect();
-
-            InputStream stream = conn.getInputStream();
-            StringBuilder builder = new StringBuilder();
-            if(stream == null) {
-                //no data
-            }
-            reader = new BufferedReader(new InputStreamReader(stream));
-
-            String line;
-            while((line = reader.readLine()) != null) {
-                builder.append(line).append("\n");
-            }
-
-            resultJSON = builder.toString();
-
-        } catch (IOException e) {
-            Log.e("ImageRequester", e.getMessage());
-        } finally {
-            if (conn != null) {
-                conn.disconnect();
-            }
-            if (reader != null) {
-                try {
-                    reader.close();
-                } catch (final IOException e) {
-                    Log.e("ImageRequester", "Error closing stream", e);
-                }
-            }
-
-            return resultJSON;
-        }
-
+    public static Asset createAssetFromBitmap(Bitmap bitmap) {
+        final ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteStream);
+        return Asset.createFromBytes(byteStream.toByteArray());
     }
+
+    public static void sendAssetToWearable(Asset asset, GoogleApiClient apiClient) {
+        PutDataRequest request = PutDataRequest.create("/image");
+        request.putAsset("subreddit-image", asset);
+        Wearable.DataApi.putDataItem(apiClient, request);
+    }
+
+
 
 }
