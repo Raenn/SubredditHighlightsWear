@@ -15,8 +15,6 @@ import android.widget.ImageView;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.wearable.DataApi;
-import com.google.android.gms.wearable.DataEventBuffer;
 import com.google.android.gms.wearable.Wearable;
 import com.raenn.subredditimages.pojo.Image;
 
@@ -29,11 +27,12 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 
-public class MainActivity extends Activity implements DataApi.DataListener,
-        GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
+public class MainActivity extends Activity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
     private static final String TAG = "SubImages-Handheld";
 
@@ -46,12 +45,14 @@ public class MainActivity extends Activity implements DataApi.DataListener,
         setContentView(R.layout.activity_main);
 
         mGoogleApiClient = new GoogleApiClient.Builder(this)
+                .addApi(Wearable.API)
                 .addConnectionCallbacks(new GoogleApiClient.ConnectionCallbacks() {
                     @Override
                     public void onConnected(Bundle connectionHint) {
                         Log.d("aaaaa", "onConnected: " + connectionHint);
                         //now use data layer API
                     }
+
                     @Override
                     public void onConnectionSuspended(int cause) {
                         Log.d("aaaaaa", "onConnectionSuspended: " + cause);
@@ -64,8 +65,8 @@ public class MainActivity extends Activity implements DataApi.DataListener,
                         Log.e(TAG, "onConnectionFailed: " + result);
                     }
                 })
-                .addApi(Wearable.API)
                 .build();
+        mGoogleApiClient.connect();
 
         imageView = (ImageView) findViewById(R.id.subredditImageTest);
     }
@@ -88,19 +89,38 @@ public class MainActivity extends Activity implements DataApi.DataListener,
     }
 
     protected void handleRedditJson(String json) {
-        //TODO: check that link is an image, request more if too few, etc
         try {
             List<Image> images = ImageRequester.parseRedditJSON(json);
-            if(images.size() == 0) {
+
+            //TODO: don't hardcode number of images per request? stop always getting 1st image, etc
+            List<Image> realImages = findValidImagesInList(images, 3);
+
+            if(realImages.size() == 0) {
                 Log.e(TAG, "Failed to retrieve images");
             }
-            Log.i("MainActivity", "Trying to load image at URL: " + images.get(1).getUrl());
-            String url = images.get(1).getUrl();
+            Log.i("MainActivity", "Trying to load image at URL: " + realImages.get(0).getUrl());
+            String url = realImages.get(0).getUrl();
 
             new ImageDownloadTask().execute(url);
         } catch (JSONException e) {
             e.printStackTrace();
         }
+    }
+
+    protected List<Image> findValidImagesInList(List<Image> images, int count) {
+        String imageRegex = "([^\\s]+(\\.(?i)(jpg|png|gif|bmp))$)";
+
+        List<Image> ret = new ArrayList<>();
+
+        for(Image image: images) {
+            if(image.getUrl().matches(imageRegex)) {
+                ret.add(image);
+                if(ret.size() > count) {
+                    break;
+                }
+            }
+        }
+        return ret;
     }
 
     @Override
@@ -113,7 +133,6 @@ public class MainActivity extends Activity implements DataApi.DataListener,
 
     @Override
     public void onConnected(Bundle connectionHint) {
-        Wearable.DataApi.addListener(mGoogleApiClient, this);
     }
 
     @Override
@@ -124,11 +143,6 @@ public class MainActivity extends Activity implements DataApi.DataListener,
     @Override
     public void onConnectionFailed(ConnectionResult connectionResult) {
         Log.e(TAG, "Failed to connect to Google Play Services");
-    }
-
-    @Override
-    public void onDataChanged(DataEventBuffer dataEventBuffer) {
-        //TODO: stuffs
     }
 
     @Override
@@ -237,7 +251,7 @@ public class MainActivity extends Activity implements DataApi.DataListener,
                     in = con.getInputStream();
                     bmp = BitmapFactory.decodeStream(in);
                     in.close();
-//                    compress to 320x320
+                    //compress to 320x320
                     bmp = Bitmap.createScaledBitmap(bmp, 320,320, false);
                 }
                 con.disconnect();
