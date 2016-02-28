@@ -69,6 +69,7 @@ public class SubredditImage extends CanvasWatchFaceService {
         Bitmap mBackgroundBitmap;
         Paint mBackgroundPaint;
         Paint mHandPaint;
+        Paint mShadowPaint;
         boolean mAmbient;
         Time mTime;
 
@@ -151,6 +152,7 @@ public class SubredditImage extends CanvasWatchFaceService {
             mHandPaint.setColor(resources.getColor(R.color.analog_hands));
             mHandPaint.setStrokeWidth(resources.getDimension(R.dimen.analog_hand_stroke));
             mHandPaint.setAntiAlias(true);
+            mHandPaint.setShadowLayer(3, 1, 1, R.color.analog_hands_shadow);
             mHandPaint.setStrokeCap(Paint.Cap.ROUND);
 
             mTime = new Time();

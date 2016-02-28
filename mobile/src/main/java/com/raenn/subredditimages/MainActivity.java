@@ -64,7 +64,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
             NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
             if (networkInfo != null && networkInfo.isConnected()) {
                 //TODO: stop hardcoding subreddit
-                new SubredditJsonTask().execute("beachporn");
+                new SubredditJsonTask().execute("winterporn");
             }
         }
     }
@@ -79,8 +79,12 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
             if(realImages.size() == 0) {
                 Log.e(TAG, "Failed to retrieve images");
             }
-            Log.i("MainActivity", "Trying to load image at URL: " + realImages.get(0).getUrl());
-            String url = realImages.get(0).getUrl();
+
+            int index = (int) Math.floor(Math.random() * realImages.size());
+
+            Log.i("MainActivity", "Trying to load image at URL: " + realImages.get(index).getUrl());
+
+            String url = realImages.get(index).getUrl();
 
             new ImageDownloadTask().execute(url);
         } catch (JSONException e) {
