@@ -12,7 +12,11 @@ import android.util.Log;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.wearable.Asset;
+import com.google.android.gms.wearable.DataItem;
+import com.google.android.gms.wearable.DataItemBuffer;
+import com.google.android.gms.wearable.PutDataMapRequest;
 import com.google.android.gms.wearable.PutDataRequest;
 import com.google.android.gms.wearable.Wearable;
 import com.raenn.subredditimages.pojo.Image;
@@ -63,8 +67,9 @@ public class ImageRequester {
     }
 
     public static void sendAssetToWearable(Asset asset, GoogleApiClient apiClient) {
-        PutDataRequest request = PutDataRequest.create("/image");
-        request.putAsset("subreddit-image", asset);
+        PutDataMapRequest dataMap = PutDataMapRequest.create("/image");
+        dataMap.getDataMap().putAsset("image", asset);
+        PutDataRequest request = dataMap.asPutDataRequest();
         Wearable.DataApi.putDataItem(apiClient, request);
     }
 

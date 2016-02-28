@@ -15,6 +15,7 @@ import android.widget.ImageView;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.wearable.Asset;
 import com.google.android.gms.wearable.Wearable;
 import com.raenn.subredditimages.pojo.Image;
 
@@ -46,25 +47,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
 
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addApi(Wearable.API)
-                .addConnectionCallbacks(new GoogleApiClient.ConnectionCallbacks() {
-                    @Override
-                    public void onConnected(Bundle connectionHint) {
-                        Log.d("aaaaa", "onConnected: " + connectionHint);
-                        //now use data layer API
-                    }
-
-                    @Override
-                    public void onConnectionSuspended(int cause) {
-                        Log.d("aaaaaa", "onConnectionSuspended: " + cause);
-                    }
-
-                })
-                .addOnConnectionFailedListener(new GoogleApiClient.OnConnectionFailedListener() {
-                    @Override
-                    public void onConnectionFailed(ConnectionResult result) {
-                        Log.e(TAG, "onConnectionFailed: " + result);
-                    }
-                })
+                .addConnectionCallbacks(this)
                 .build();
         mGoogleApiClient.connect();
 
@@ -77,13 +60,11 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
         if(!mGoogleApiClient.isConnected()) {
             mGoogleApiClient.connect();
 
-            ImageRequester ir = new ImageRequester();
-
             ConnectivityManager connMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
             NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
             if (networkInfo != null && networkInfo.isConnected()) {
                 //TODO: stop hardcoding subreddit
-                new SubredditJsonTask().execute("pics");
+                new SubredditJsonTask().execute("beachporn");
             }
         }
     }
@@ -265,6 +246,9 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
         protected void onPostExecute(Bitmap result) {
 //          got image at this point; probably want to store it somewhere
             imageView.setImageBitmap(result);
+            Asset ass = ImageRequester.createAssetFromBitmap(result);
+            Log.v(TAG, "Sending asset to wearable");
+            ImageRequester.sendAssetToWearable(ass, mGoogleApiClient);
         }
 
     }
