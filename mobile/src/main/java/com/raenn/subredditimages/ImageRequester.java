@@ -72,7 +72,4 @@ public class ImageRequester {
         PutDataRequest request = dataMap.asPutDataRequest();
         Wearable.DataApi.putDataItem(apiClient, request);
     }
-
-
-
 }

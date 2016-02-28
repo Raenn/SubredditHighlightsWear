@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.media.ThumbnailUtils;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
@@ -30,7 +31,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
 
 
 public class MainActivity extends Activity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
@@ -64,7 +64,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
             NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
             if (networkInfo != null && networkInfo.isConnected()) {
                 //TODO: stop hardcoding subreddit
-                new SubredditJsonTask().execute("winterporn");
+                new SubredditJsonTask().execute("f1porn");
             }
         }
     }
@@ -236,8 +236,8 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
                     in = con.getInputStream();
                     bmp = BitmapFactory.decodeStream(in);
                     in.close();
-                    //compress to 320x320
-                    bmp = Bitmap.createScaledBitmap(bmp, 320,320, false);
+                    //compress to 320x320; //TODO receive size from watch somehow
+                    bmp = ThumbnailUtils.extractThumbnail(bmp, 320, 320);
                 }
                 con.disconnect();
             } catch (IOException e) {
