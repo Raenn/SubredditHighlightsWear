@@ -113,16 +113,21 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
 
     protected List<Image> findValidImagesInList(List<Image> images, int count, String currentImageURL) {
         String imageRegex = "([^\\s]+(\\.(?i)(jpg|png|gif|bmp))$)";
+        String indirectImgurRegex = "^[^\\s]*imgur\\.com\\/[\\w]+$"; // e.g. imgur.com/1Hi5qJP
 
         List<Image> ret = new ArrayList<>();
 
         for(Image image: images) {
             //prevent showing same image, and (currently) filter out anything NSFW
-            if(image.getUrl().equals(currentImageURL) || image.isOver18()) {
-                continue;
-            }
-            if(image.getUrl().matches(imageRegex)) {
-                ret.add(image);
+            if(!image.getUrl().equals(currentImageURL) && !image.isOver18()) {
+                if(image.getUrl().matches(imageRegex)) {
+                    ret.add(image);
+                }
+                if(image.getUrl().matches(indirectImgurRegex)) {
+                    image.setUrl(image.getUrl() + ".jpg");
+                    ret.add(image);
+                }
+
                 if(ret.size() > count) {
                     break;
                 }
@@ -136,6 +141,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
 //        don't think these are needed here (binding done automatically) but may need on watch?
 //        Wearable.DataApi.removeListener(mGoogleApiClient, this);
 //        Wearable.MessageApi.removeListener(mGoogleApiClient, this);
+        scheduler.shutdown();
         super.onStop();
     }
 
@@ -194,7 +200,6 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
              * probably want to store this locally on phone, and query from watch
              * see "Add data to your watch face": https://developer.android.com/training/wearables/watch-faces/information.html
              */
-            Log.i("GREAT SUCCESS", "YEAH");
             handleRedditJson(result);
         }
 
