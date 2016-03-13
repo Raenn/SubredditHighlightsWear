@@ -4,11 +4,13 @@ public class Image {
     private String url;
     private String id;
     private String datetime; //todo: store properly
+    private boolean isOver18;
 
-    public Image(String id, String url, String datetime) {
+    public Image(String id, String url, String datetime, boolean isOver18) {
         this.id = id;
         this.url = url;
         this.datetime = datetime;
+        this.isOver18 = isOver18;
     }
 
     public String getId() {
@@ -33,5 +35,13 @@ public class Image {
 
     public void setDatetime(String datetime) {
         this.datetime = datetime;
+    }
+
+    public boolean isOver18() {
+        return isOver18;
+    }
+
+    public void setOver18(boolean over18) {
+        isOver18 = over18;
     }
 }

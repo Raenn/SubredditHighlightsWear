@@ -49,11 +49,13 @@ public class ImageRequester {
 
         for(int i = 0; i < stories.length(); i++) {
             JSONObject data = ((JSONObject) stories.get(i)).getJSONObject("data");
+
             //TODO: verify don't already have object, etc
             Image image = new Image(
                     data.getString("id"),
                     data.getString("url"),
-                    data.getString("created_utc")
+                    data.getString("created_utc"),
+                    data.getBoolean("over_18")
             );
             ret.add(image);
         }

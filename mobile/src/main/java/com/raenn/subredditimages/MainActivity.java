@@ -31,6 +31,9 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 
 public class MainActivity extends Activity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
@@ -39,6 +42,10 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
 
     private GoogleApiClient mGoogleApiClient;
     private ImageView imageView;
+    private ScheduledExecutorService scheduler;
+    private String currentImageURL;
+
+    ConnectivityManager connMgr;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,6 +59,25 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
         mGoogleApiClient.connect();
 
         imageView = (ImageView) findViewById(R.id.subredditImageTest);
+
+        scheduler = Executors.newScheduledThreadPool(1);
+
+        final Runnable imageGetterRunnable = new Runnable() {
+            private final String TAG = "Scheduled task";
+            @Override
+            public void run() {
+                Log.w(TAG, "Scheduled task running!");
+
+                NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
+                if (networkInfo != null && networkInfo.isConnected()) {
+                    //TODO: stop hardcoding subreddit
+                    new SubredditJsonTask().execute("macroporn");
+                }
+            }
+        };
+
+        long interval = 30 * 60;
+        scheduler.scheduleAtFixedRate(imageGetterRunnable, 5, interval, TimeUnit.SECONDS);
     }
 
     @Override
@@ -60,12 +86,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
         if(!mGoogleApiClient.isConnected()) {
             mGoogleApiClient.connect();
 
-            ConnectivityManager connMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-            NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
-            if (networkInfo != null && networkInfo.isConnected()) {
-                //TODO: stop hardcoding subreddit
-                new SubredditJsonTask().execute("f1porn");
-            }
+            connMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         }
     }
 
@@ -74,30 +95,32 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
             List<Image> images = ImageRequester.parseRedditJSON(json);
 
             //TODO: don't hardcode number of images per request? stop always getting 1st image, etc
-            List<Image> realImages = findValidImagesInList(images, 3);
+            List<Image> realImages = findValidImagesInList(images, 5, currentImageURL);
 
             if(realImages.size() == 0) {
                 Log.e(TAG, "Failed to retrieve images");
             }
 
             int index = (int) Math.floor(Math.random() * realImages.size());
-
             Log.i("MainActivity", "Trying to load image at URL: " + realImages.get(index).getUrl());
+            currentImageURL = realImages.get(index).getUrl();
 
-            String url = realImages.get(index).getUrl();
-
-            new ImageDownloadTask().execute(url);
+            new ImageDownloadTask().execute(currentImageURL);
         } catch (JSONException e) {
             e.printStackTrace();
         }
     }
 
-    protected List<Image> findValidImagesInList(List<Image> images, int count) {
+    protected List<Image> findValidImagesInList(List<Image> images, int count, String currentImageURL) {
         String imageRegex = "([^\\s]+(\\.(?i)(jpg|png|gif|bmp))$)";
 
         List<Image> ret = new ArrayList<>();
 
         for(Image image: images) {
+            //prevent showing same image, and (currently) filter out anything NSFW
+            if(image.getUrl().equals(currentImageURL) || image.isOver18()) {
+                continue;
+            }
             if(image.getUrl().matches(imageRegex)) {
                 ret.add(image);
                 if(ret.size() > count) {
@@ -110,7 +133,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
 
     @Override
     protected void onStop() {
-//        see quiz example, not sure if need these yet
+//        don't think these are needed here (binding done automatically) but may need on watch?
 //        Wearable.DataApi.removeListener(mGoogleApiClient, this);
 //        Wearable.MessageApi.removeListener(mGoogleApiClient, this);
         super.onStop();
@@ -237,7 +260,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
                     bmp = BitmapFactory.decodeStream(in);
                     in.close();
                     //compress to 320x320; //TODO receive size from watch somehow
-                    bmp = ThumbnailUtils.extractThumbnail(bmp, 320, 320);
+                    bmp = ThumbnailUtils.extractThumbnail(bmp, 320, 290);
                 }
                 con.disconnect();
             } catch (IOException e) {
